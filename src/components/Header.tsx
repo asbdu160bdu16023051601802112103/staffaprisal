@@ -1,10 +1,14 @@
+import collegeLogo from "@/assets/college-logo.png";
+
 const Header = () => {
   return (
     <header className="header-gradient text-primary-foreground py-6 px-4">
       <div className="max-w-5xl mx-auto flex items-center gap-4">
-        <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl font-bold shrink-0">
-          BSC
-        </div>
+        <img
+          src={collegeLogo}
+          alt="Bon Secours College Logo"
+          className="w-16 h-16 rounded-full shrink-0 bg-white p-1"
+        />
         <div className="flex-1">
           <h1 className="text-xl md:text-2xl font-bold tracking-wide">
             BON SECOURS COLLEGE FOR WOMEN (AUTONOMOUS)

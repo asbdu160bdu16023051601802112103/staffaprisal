@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import Header from "@/components/Header";
 import FormSection from "@/components/FormSection";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,8 @@ const StaffForm = () => {
   const [data, setData] = useState<AppraisalData>(getDefaultData());
   const [loading, setLoading] = useState(false);
   const [score, setScore] = useState<number | null>(null);
+  const [lastSubmittedData, setLastSubmittedData] = useState<AppraisalData | null>(null);
+  const [lastSubmittedScore, setLastSubmittedScore] = useState<number | null>(null);
   const navigate = useNavigate();
 
   const set = (field: keyof AppraisalData, value: string | number | boolean) => {
@@ -100,6 +103,8 @@ const StaffForm = () => {
       toast.error("Failed to submit: " + error.message);
     } else {
       toast.success(`Appraisal submitted successfully! Score: ${totalScore}/200`);
+      setLastSubmittedData({ ...data });
+      setLastSubmittedScore(totalScore);
       setData(getDefaultData());
       setScore(null);
     }
@@ -109,6 +114,16 @@ const StaffForm = () => {
     setData(getDefaultData());
     setScore(null);
     toast.info("Form cleared");
+  };
+
+  const handleDownloadExcel = () => {
+    if (!lastSubmittedData || lastSubmittedScore === null) return;
+    const exportData = { ...lastSubmittedData, total_score: lastSubmittedScore };
+    const ws = XLSX.utils.json_to_sheet([exportData]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "My Appraisal");
+    XLSX.writeFile(wb, `Appraisal_${lastSubmittedData.staff_name}_${lastSubmittedData.academic_year}.xlsx`);
+    toast.success("Excel file downloaded!");
   };
 
   return (
@@ -349,7 +364,7 @@ const StaffForm = () => {
         )}
 
         {/* Action buttons */}
-        <div className="flex flex-wrap gap-3 mt-6 mb-10">
+        <div className="flex flex-wrap gap-3 mt-6 mb-4">
           <button onClick={handleCalculateScore} className="submit-btn flex items-center gap-2">
             📊 Calculate Score
           </button>
@@ -360,6 +375,18 @@ const StaffForm = () => {
             🗑️ Clear Form
           </button>
         </div>
+
+        {/* Download own Excel after submission */}
+        {lastSubmittedData && lastSubmittedScore !== null && (
+          <div className="section-card text-center mb-10">
+            <p className="text-lg font-semibold text-primary mb-3">
+              ✅ Appraisal submitted! Score: {lastSubmittedScore}/200
+            </p>
+            <button onClick={handleDownloadExcel} className="submit-btn flex items-center gap-2 mx-auto">
+              📥 Download My Appraisal as Excel
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
