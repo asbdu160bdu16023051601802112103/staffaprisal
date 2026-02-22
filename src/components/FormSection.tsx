@@ -12,7 +12,7 @@ const FormSection = ({ number, icon, title, children }: FormSectionProps) => {
     <div className="section-card">
       <h3 className="section-title">
         <span>{icon}</span>
-        {number}. {title}
+        {number ? `${number}. ` : ""}{title}
       </h3>
       {children}
     </div>
