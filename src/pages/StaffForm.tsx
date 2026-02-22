@@ -294,20 +294,24 @@ const StaffForm = () => {
           {numInput("advanced_learners_tasks", "Advanced learners tasks")}
         </FormSection>
 
-        {/* Section 24-25 */}
-        <FormSection number="24-25" icon="🔬" title="Research Activities">
-          <div className="form-grid">
-            {numInput("research_papers_published", "Research papers published")}
-            {numInput("research_projects", "Research projects")}
-          </div>
+        {/* Section 24 */}
+        <FormSection number="24" icon="🔬" title="Research Papers Published">
+          {numInput("research_papers_published", "Research papers published")}
         </FormSection>
 
-        {/* Section 26-28 */}
-        <FormSection number="26-28" icon="🌟" title="Leadership & Governance">
+        {/* Section 25 */}
+        <FormSection number="25" icon="🔬" title="Research Projects">
+          {numInput("research_projects", "Research projects")}
+        </FormSection>
+
+        {/* Section 26 */}
+        <FormSection number="26" icon="🌟" title="Leadership Roles">
           {numInput("leadership_roles", "Leadership roles")}
-          <div className="mt-3">
-            {boolInput("files_maintained", "Files maintained?", "5 points")}
-          </div>
+        </FormSection>
+
+        {/* Section 27 */}
+        <FormSection number="27" icon="📁" title="Files Maintained">
+          {boolInput("files_maintained", "Files maintained?", "5 points")}
         </FormSection>
 
         {/* Self-Assessment */}
