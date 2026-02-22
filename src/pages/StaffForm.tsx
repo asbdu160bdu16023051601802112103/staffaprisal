@@ -314,8 +314,8 @@ const StaffForm = () => {
           {boolInput("files_maintained", "Files maintained?", "5 points")}
         </FormSection>
 
-        {/* Self-Assessment */}
-        <FormSection number="" icon="📝" title="Self-Assessment & Additional Info">
+        {/* Section 28 */}
+        <FormSection number="28" icon="📝" title="Self-Assessment & Additional Info">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>Strengths</Label>
