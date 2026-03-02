@@ -142,7 +142,7 @@ const StaffForm = () => {
         </div>
 
         <h2 className="text-2xl font-bold text-foreground mb-2">
-          📊 Staff Appraisal System - Complete 28 Sections
+          📊 Bon Grade Me - Staff Performance - Complete 28 Sections
         </h2>
         <div className="info-banner mb-6">
           Fill all 28 sections. Upload proof files where required for scoring.{" "}
