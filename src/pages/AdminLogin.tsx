@@ -51,7 +51,7 @@ const AdminLogin = () => {
             🔒 Admin Login
           </h2>
           <p className="text-sm text-muted-foreground mb-6">
-            Bon Secours College Staff Appraisal System
+            Bon Grade Me - Staff Performance
           </p>
 
           <form onSubmit={handleLogin} className="space-y-4">
