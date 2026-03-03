@@ -3,7 +3,6 @@ export interface AppraisalData {
   department: string;
   designation: string;
   academic_year: string;
-  email_id: string;
   employee_id: string;
   casual_leave_days: number;
   loss_of_pay_days: number;
@@ -57,7 +56,6 @@ export const getDefaultData = (): AppraisalData => ({
   department: "",
   designation: "",
   academic_year: "2024-2025",
-  email_id: "",
   employee_id: "",
   casual_leave_days: 0,
   loss_of_pay_days: 0,
@@ -106,90 +104,158 @@ export const getDefaultData = (): AppraisalData => ({
   overall_recommendations: "",
 });
 
-export function calculateScore(data: AppraisalData): number {
-  let score = 0;
+export interface SectionScore {
+  section: string;
+  score: number;
+  maxScore: number;
+}
 
-  // Leave scoring: fewer leaves = more points (max 10)
-  if (data.casual_leave_days <= 3) score += 10;
-  else if (data.casual_leave_days <= 6) score += 7;
-  else if (data.casual_leave_days <= 10) score += 4;
+export function calculateSectionScores(data: AppraisalData, certificateSections: Set<string>): SectionScore[] {
+  const sections: SectionScore[] = [];
+  const certBonus = (sectionKey: string, base: number, max: number) => {
+    const bonus = certificateSections.has(sectionKey) ? Math.ceil(base * 0.1) : 0;
+    return Math.min(base + bonus, max);
+  };
 
-  if (data.loss_of_pay_days === 0) score += 5;
+  // Section 1: Personal Info - no score
+  // Section 2: Leave
+  let s2 = 0;
+  if (data.casual_leave_days <= 3) s2 += 10;
+  else if (data.casual_leave_days <= 6) s2 += 7;
+  else if (data.casual_leave_days <= 10) s2 += 4;
+  if (data.loss_of_pay_days === 0) s2 += 5;
+  sections.push({ section: "2. Leave / Permission / On Duty", score: certBonus("s2", s2, 15), maxScore: 15 });
 
-  // Professional development
-  if (data.qualification_upgradation) score += 5;
-  score += Math.min(data.fdp_days_attended, 5) * 2; // max 10
-  score += Math.min(data.seminars_workshops_attended, 5) * 2; // max 10
-  score += Math.min(data.seminars_workshops_organized, 3) * 5; // max 15
+  // Section 3: Professional Development
+  let s3 = 0;
+  if (data.qualification_upgradation) s3 += 5;
+  s3 += Math.min(data.fdp_days_attended, 5) * 2;
+  s3 += Math.min(data.seminars_workshops_attended, 5) * 2;
+  s3 += Math.min(data.seminars_workshops_organized, 3) * 5;
+  sections.push({ section: "3. Professional Development", score: certBonus("s3", s3, 40), maxScore: 40 });
 
-  // Online courses
-  score += Math.min(data.online_courses_completed, 3) * 5; // max 15
-  score += Math.min(data.e_contents_developed, 3) * 3; // max 9
+  // Section 4: Online Courses
+  let s4 = 0;
+  s4 += Math.min(data.online_courses_completed, 3) * 5;
+  s4 += Math.min(data.e_contents_developed, 3) * 3;
+  sections.push({ section: "4. Online Courses & e-Content", score: certBonus("s4", s4, 24), maxScore: 24 });
 
-  // Awards
-  score += Math.min(data.number_of_awards, 3) * 5; // max 15
+  // Section 5: Awards
+  let s5 = Math.min(data.number_of_awards, 3) * 5;
+  sections.push({ section: "5. Awards & Recognitions", score: certBonus("s5", s5, 15), maxScore: 15 });
 
-  // Memberships
-  score += Math.min(data.active_memberships, 3) * 3; // max 9
+  // Section 6: Memberships
+  let s6 = Math.min(data.active_memberships, 3) * 3;
+  sections.push({ section: "6. Memberships", score: certBonus("s6", s6, 9), maxScore: 9 });
 
-  // Administrative penalties
-  if (data.administrative_penalties) score -= 5;
+  // Section 7: Administrative
+  let s7 = data.administrative_penalties ? -5 : 0;
+  sections.push({ section: "7. Administrative Actions", score: s7, maxScore: 0 });
 
-  // Curriculum
-  score += Math.min(data.curriculum_contributions, 3) * 3; // max 9
+  // Section 8: Curriculum
+  let s8 = Math.min(data.curriculum_contributions, 3) * 3;
+  sections.push({ section: "8. Curriculum Development", score: certBonus("s8", s8, 9), maxScore: 9 });
 
-  // Teaching
-  if (data.workload_hours_per_week >= 16) score += 5;
-  score += Math.min(data.courses_taught, 5);
-  score += Math.min(data.remedial_classes, 3) * 2;
-  score += Math.min(data.exam_duties, 3) * 2;
-  if (data.course_file_submitted) score += 5;
+  // Section 9: Teaching
+  let s9 = 0;
+  if (data.workload_hours_per_week >= 16) s9 += 5;
+  s9 += Math.min(data.courses_taught, 5);
+  s9 += Math.min(data.remedial_classes, 3) * 2;
+  s9 += Math.min(data.exam_duties, 3) * 2;
+  if (data.course_file_submitted) s9 += 5;
+  sections.push({ section: "9. Teaching & Evaluation", score: certBonus("s9", s9, 22), maxScore: 22 });
 
-  // Value added courses
-  score += Math.min(data.value_added_courses_offered, 3) * 3;
+  // Section 10: Value Added
+  let s10 = Math.min(data.value_added_courses_offered, 3) * 3;
+  sections.push({ section: "10. Value Added Courses", score: certBonus("s10", s10, 9), maxScore: 9 });
 
-  // Activities
-  score += Math.min(data.cocurricular_activities_organized, 3) * 3;
-  score += Math.min(data.extracurricular_activities_advisor, 3) * 3;
+  // Section 11: Co-curricular
+  let s11 = Math.min(data.cocurricular_activities_organized, 3) * 3;
+  sections.push({ section: "11. Co-curricular Activities", score: certBonus("s11", s11, 9), maxScore: 9 });
 
-  // Social responsibility
-  score += Math.min(data.social_programs_participated, 3) * 3;
+  // Section 12: Extra-curricular
+  let s12 = Math.min(data.extracurricular_activities_advisor, 3) * 3;
+  sections.push({ section: "12. Extra-curricular Activities", score: certBonus("s12", s12, 9), maxScore: 9 });
 
-  // Projects & internships
-  score += Math.min(data.projects_guided, 5) * 2;
-  score += Math.min(data.internships_guided, 3) * 3;
+  // Section 13: Social
+  let s13 = Math.min(data.social_programs_participated, 3) * 3;
+  sections.push({ section: "13. Social Responsibility", score: certBonus("s13", s13, 9), maxScore: 9 });
 
-  // Mentoring
-  score += Math.min(data.number_of_mentees, 5);
+  // Section 14: Projects
+  let s14 = Math.min(data.projects_guided, 5) * 2;
+  sections.push({ section: "14. Student Projects", score: certBonus("s14", s14, 10), maxScore: 10 });
 
-  // Class in-charge
-  if (data.class_in_charge) score += 5;
+  // Section 15: Internship
+  let s15 = Math.min(data.internships_guided, 3) * 3;
+  sections.push({ section: "15. Internship / Training", score: certBonus("s15", s15, 9), maxScore: 9 });
 
-  // Results & attendance
-  if (data.average_pass_percentage >= 90) score += 10;
-  else if (data.average_pass_percentage >= 75) score += 7;
-  else if (data.average_pass_percentage >= 60) score += 4;
+  // Section 16: Mentoring
+  let s16 = Math.min(data.number_of_mentees, 5);
+  sections.push({ section: "16. Tutor-Ward System", score: certBonus("s16", s16, 5), maxScore: 5 });
 
-  if (data.attendance_percentage >= 90) score += 5;
-  else if (data.attendance_percentage >= 75) score += 3;
+  // Section 17: Class in-charge
+  let s17 = data.class_in_charge ? 5 : 0;
+  sections.push({ section: "17. Class In-Charge", score: s17, maxScore: 5 });
 
-  if (data.exam_attendance_percentage >= 90) score += 5;
-  else if (data.exam_attendance_percentage >= 75) score += 3;
+  // Section 18: Results
+  let s18 = 0;
+  if (data.average_pass_percentage >= 90) s18 = 10;
+  else if (data.average_pass_percentage >= 75) s18 = 7;
+  else if (data.average_pass_percentage >= 60) s18 = 4;
+  sections.push({ section: "18. Student Results", score: certBonus("s18", s18, 10), maxScore: 10 });
 
-  // Parent meetings
-  score += Math.min(data.parent_meetings_conducted, 3) * 2;
+  // Section 19: Attendance
+  let s19 = 0;
+  if (data.attendance_percentage >= 90) s19 = 5;
+  else if (data.attendance_percentage >= 75) s19 = 3;
+  sections.push({ section: "19. Student Attendance", score: certBonus("s19", s19, 5), maxScore: 5 });
 
-  // Slow & advanced learners
-  score += Math.min(data.slow_learners_assisted, 5);
-  score += Math.min(data.advanced_learners_tasks, 5);
+  // Section 20: Exam Attendance
+  let s20 = 0;
+  if (data.exam_attendance_percentage >= 90) s20 = 5;
+  else if (data.exam_attendance_percentage >= 75) s20 = 3;
+  sections.push({ section: "20. Exam Attendance", score: certBonus("s20", s20, 5), maxScore: 5 });
 
-  // Research
-  score += Math.min(data.research_papers_published, 5) * 3;
-  score += Math.min(data.research_projects, 3) * 3;
+  // Section 21: Parent Meetings
+  let s21 = Math.min(data.parent_meetings_conducted, 3) * 2;
+  sections.push({ section: "21. Parent Meetings", score: certBonus("s21", s21, 6), maxScore: 6 });
 
-  // Leadership
-  score += Math.min(data.leadership_roles, 3) * 3;
-  if (data.files_maintained) score += 5;
+  // Section 22: Slow Learners
+  let s22 = Math.min(data.slow_learners_assisted, 5);
+  sections.push({ section: "22. Slow Learners", score: certBonus("s22", s22, 5), maxScore: 5 });
 
-  return Math.min(score, 200);
+  // Section 23: Advanced Learners
+  let s23 = Math.min(data.advanced_learners_tasks, 5);
+  sections.push({ section: "23. Advanced Learners", score: certBonus("s23", s23, 5), maxScore: 5 });
+
+  // Section 24: Research Papers
+  let s24 = Math.min(data.research_papers_published, 5) * 3;
+  sections.push({ section: "24. Research Papers", score: certBonus("s24", s24, 15), maxScore: 15 });
+
+  // Section 25: Research Projects
+  let s25 = Math.min(data.research_projects, 3) * 3;
+  sections.push({ section: "25. Research Projects", score: certBonus("s25", s25, 9), maxScore: 9 });
+
+  // Section 26: Leadership
+  let s26 = Math.min(data.leadership_roles, 3) * 3;
+  sections.push({ section: "26. Leadership Roles", score: certBonus("s26", s26, 9), maxScore: 9 });
+
+  // Section 27: Files
+  let s27 = data.files_maintained ? 5 : 0;
+  sections.push({ section: "27. Files Maintained", score: s27, maxScore: 5 });
+
+  return sections;
+}
+
+export function calculateScore(data: AppraisalData, certificateSections?: Set<string>): number {
+  const sections = calculateSectionScores(data, certificateSections || new Set());
+  const total = sections.reduce((sum, s) => sum + s.score, 0);
+  return Math.min(Math.max(total, 0), 200);
+}
+
+export function getPerformanceLevel(score: number): { label: string; emoji: string } {
+  if (score >= 170) return { label: "Excellent", emoji: "🌟" };
+  if (score >= 130) return { label: "Very Good", emoji: "👏" };
+  if (score >= 90) return { label: "Good", emoji: "👍" };
+  return { label: "Needs Improvement", emoji: "📈" };
 }

@@ -4,22 +4,37 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import Header from "@/components/Header";
 import FormSection from "@/components/FormSection";
+import CertificateUpload from "@/components/CertificateUpload";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { AppraisalData, getDefaultData, calculateScore } from "@/lib/scoreCalculator";
+import { AppraisalData, getDefaultData, calculateScore, calculateSectionScores, getPerformanceLevel } from "@/lib/scoreCalculator";
 
 const StaffForm = () => {
   const [data, setData] = useState<AppraisalData>(getDefaultData());
   const [loading, setLoading] = useState(false);
   const [score, setScore] = useState<number | null>(null);
+  const [sectionScores, setSectionScores] = useState<ReturnType<typeof calculateSectionScores> | null>(null);
   const [lastSubmittedData, setLastSubmittedData] = useState<AppraisalData | null>(null);
   const [lastSubmittedScore, setLastSubmittedScore] = useState<number | null>(null);
+  const [certFiles, setCertFiles] = useState<Record<string, File[]>>({});
   const navigate = useNavigate();
 
   const set = (field: keyof AppraisalData, value: string | number | boolean) => {
     setData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleCertFiles = (sectionKey: string, files: File[]) => {
+    setCertFiles((prev) => ({ ...prev, [sectionKey]: files }));
+  };
+
+  const getCertSections = (): Set<string> => {
+    const s = new Set<string>();
+    Object.entries(certFiles).forEach(([key, files]) => {
+      if (files.length > 0) s.add(key);
+    });
+    return s;
   };
 
   const numInput = (field: keyof AppraisalData, label: string, placeholder = "0") => (
@@ -79,40 +94,74 @@ const StaffForm = () => {
   );
 
   const handleCalculateScore = () => {
-    const s = calculateScore(data);
+    const certSections = getCertSections();
+    const s = calculateScore(data, certSections);
+    const ss = calculateSectionScores(data, certSections);
     setScore(s);
+    setSectionScores(ss);
+  };
+
+  const uploadCertificates = async (appraisalId: string) => {
+    for (const [sectionKey, files] of Object.entries(certFiles)) {
+      for (const file of files) {
+        const filePath = `${appraisalId}/${sectionKey}/${Date.now()}_${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from("certificates")
+          .upload(filePath, file);
+        if (uploadError) {
+          console.error("Upload error:", uploadError);
+          continue;
+        }
+        await supabase.from("appraisal_certificates").insert({
+          appraisal_id: appraisalId,
+          section_number: sectionKey,
+          file_name: file.name,
+          file_path: filePath,
+        });
+      }
+    }
   };
 
   const handleSubmit = async () => {
-    if (!data.staff_name || !data.department || !data.designation || !data.academic_year) {
-      toast.error("Please fill in all required fields in Personal Information");
+    if (!data.staff_name || !data.department || !data.designation || !data.academic_year || !data.employee_id) {
+      toast.error("Please fill in all required fields (Staff Name, Department, Designation, Academic Year, Employee ID)");
       return;
     }
 
     setLoading(true);
-    const totalScore = calculateScore(data);
+    const certSections = getCertSections();
+    const totalScore = calculateScore(data, certSections);
 
-    const { error } = await supabase.from("appraisals").insert({
+    const { data: inserted, error } = await supabase.from("appraisals").insert({
       ...data,
       total_score: totalScore,
-    });
-
-    setLoading(false);
+    }).select("id").single();
 
     if (error) {
+      setLoading(false);
       toast.error("Failed to submit: " + error.message);
-    } else {
-      toast.success(`Appraisal submitted successfully! Score: ${totalScore}/200`);
-      setLastSubmittedData({ ...data });
-      setLastSubmittedScore(totalScore);
-      setData(getDefaultData());
-      setScore(null);
+      return;
     }
+
+    if (inserted) {
+      await uploadCertificates(inserted.id);
+    }
+
+    setLoading(false);
+    toast.success(`Appraisal submitted successfully! Score: ${totalScore}/200`);
+    setLastSubmittedData({ ...data });
+    setLastSubmittedScore(totalScore);
+    setData(getDefaultData());
+    setScore(null);
+    setSectionScores(null);
+    setCertFiles({});
   };
 
   const handleClear = () => {
     setData(getDefaultData());
     setScore(null);
+    setSectionScores(null);
+    setCertFiles({});
     toast.info("Form cleared");
   };
 
@@ -125,6 +174,17 @@ const StaffForm = () => {
     XLSX.writeFile(wb, `Appraisal_${lastSubmittedData.staff_name}_${lastSubmittedData.academic_year}.xlsx`);
     toast.success("Excel file downloaded!");
   };
+
+  const cert = (sectionKey: string, label?: string) => (
+    <CertificateUpload
+      sectionKey={sectionKey}
+      files={certFiles[sectionKey] || []}
+      onFilesChange={handleCertFiles}
+      label={label}
+    />
+  );
+
+  const perfLevel = score !== null ? getPerformanceLevel(score) : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -158,9 +218,9 @@ const StaffForm = () => {
             {textInput("academic_year", "Academic Year", "2024-2025", true)}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-            {textInput("email_id", "Email ID", "email@bonsecourscollege.edu")}
-            {textInput("employee_id", "Employee ID", "EMP001")}
+            {textInput("employee_id", "Employee ID", "EMP001", true)}
           </div>
+          {cert("s1", "Upload Proof (Optional)")}
         </FormSection>
 
         {/* Section 2 */}
@@ -171,16 +231,19 @@ const StaffForm = () => {
             {numInput("permission_hours", "Permission Hours")}
             {numInput("on_duty_days", "On Duty days")}
           </div>
+          {cert("s2", "Upload Proof (Optional)")}
         </FormSection>
 
         {/* Section 3 */}
         <FormSection number="3" icon="🎓" title="Professional Development">
           {boolInput("qualification_upgradation", "Qualification Upgradation", "5 points")}
+          {cert("s3_qual", "Upload Qualification Certificate (Optional)")}
           <div className="form-grid mt-3">
             {numInput("fdp_days_attended", "FDP days attended")}
             {numInput("seminars_workshops_attended", "Seminars/Workshops Attended")}
             {numInput("seminars_workshops_organized", "Seminars/Workshops Organized")}
           </div>
+          {cert("s3", "Upload FDP / Seminar Certificate (Optional)")}
         </FormSection>
 
         {/* Section 4 */}
@@ -189,19 +252,22 @@ const StaffForm = () => {
             {numInput("online_courses_completed", "Online courses completed")}
             {numInput("e_contents_developed", "e-Contents developed")}
           </div>
+          {cert("s4")}
         </FormSection>
 
         {/* Section 5 */}
         <FormSection number="5" icon="🏆" title="Awards & Recognitions">
           {numInput("number_of_awards", "Number of awards")}
+          {cert("s5")}
         </FormSection>
 
         {/* Section 6 */}
         <FormSection number="6" icon="🤝" title="Memberships in Academic Bodies">
           {numInput("active_memberships", "Active memberships")}
+          {cert("s6")}
         </FormSection>
 
-        {/* Section 7 */}
+        {/* Section 7 - NO upload */}
         <FormSection number="7" icon="⚖️" title="Administrative Actions">
           {boolInput("administrative_penalties", "Administrative penalties?", "-5 points")}
         </FormSection>
@@ -209,9 +275,10 @@ const StaffForm = () => {
         {/* Section 8 */}
         <FormSection number="8" icon="📚" title="Curriculum Development">
           {numInput("curriculum_contributions", "Contributions to curriculum")}
+          {cert("s8")}
         </FormSection>
 
-        {/* Section 9 */}
+        {/* Section 9 - ONE common upload */}
         <FormSection number="9" icon="👨‍🏫" title="Teaching Learning & Evaluation">
           <div className="form-grid">
             {numInput("workload_hours_per_week", "Workload (hours/week)")}
@@ -222,44 +289,52 @@ const StaffForm = () => {
           <div className="mt-3">
             {boolInput("course_file_submitted", "Course file submitted?", "5 points")}
           </div>
+          {cert("s9", "Upload Teaching Certificates (Optional)")}
         </FormSection>
 
         {/* Section 10 */}
         <FormSection number="10" icon="➕" title="Value Added Courses">
           {numInput("value_added_courses_offered", "Value-added courses offered")}
+          {cert("s10")}
         </FormSection>
 
         {/* Section 11 */}
         <FormSection number="11" icon="🎭" title="Co-curricular Activities">
           {numInput("cocurricular_activities_organized", "Activities organized")}
+          {cert("s11")}
         </FormSection>
 
         {/* Section 12 */}
         <FormSection number="12" icon="🏀" title="Extra-curricular Activities">
           {numInput("extracurricular_activities_advisor", "Activities as advisor")}
+          {cert("s12")}
         </FormSection>
 
         {/* Section 13 */}
         <FormSection number="13" icon="🤲" title="Social Responsibility">
           {numInput("social_programs_participated", "Programs participated")}
+          {cert("s13")}
         </FormSection>
 
         {/* Section 14 */}
         <FormSection number="14" icon="🔬" title="Student Projects">
           {numInput("projects_guided", "Projects guided")}
+          {cert("s14")}
         </FormSection>
 
         {/* Section 15 */}
         <FormSection number="15" icon="💼" title="Internship / Training">
           {numInput("internships_guided", "Internships guided")}
+          {cert("s15")}
         </FormSection>
 
         {/* Section 16 */}
         <FormSection number="16" icon="👥" title="Tutor-Ward System">
           {numInput("number_of_mentees", "Number of mentees")}
+          {cert("s16")}
         </FormSection>
 
-        {/* Section 17 */}
+        {/* Section 17 - NO upload */}
         <FormSection number="17" icon="👑" title="Class In-Charge">
           {boolInput("class_in_charge", "Were you class in-charge?", "5 points")}
         </FormSection>
@@ -267,49 +342,58 @@ const StaffForm = () => {
         {/* Section 18 */}
         <FormSection number="18" icon="📊" title="Student Results">
           {numInput("average_pass_percentage", "Average pass % (0-100)")}
+          {cert("s18")}
         </FormSection>
 
         {/* Section 19 */}
         <FormSection number="19" icon="📈" title="Student Attendance">
           {numInput("attendance_percentage", "Attendance % in classes")}
+          {cert("s19")}
         </FormSection>
 
         {/* Section 20 */}
         <FormSection number="20" icon="📝" title="Exam Attendance">
           {numInput("exam_attendance_percentage", "Exam attendance %")}
+          {cert("s20")}
         </FormSection>
 
         {/* Section 21 */}
         <FormSection number="21" icon="👨‍👩‍👧‍👦" title="Parent Meetings">
           {numInput("parent_meetings_conducted", "Parent meetings conducted")}
+          {cert("s21")}
         </FormSection>
 
         {/* Section 22 */}
         <FormSection number="22" icon="🐢" title="Slow Learners">
           {numInput("slow_learners_assisted", "Slow learners assisted")}
+          {cert("s22")}
         </FormSection>
 
         {/* Section 23 */}
         <FormSection number="23" icon="🚀" title="Advanced Learners">
           {numInput("advanced_learners_tasks", "Advanced learners tasks")}
+          {cert("s23")}
         </FormSection>
 
         {/* Section 24 */}
         <FormSection number="24" icon="🔬" title="Research Papers Published">
           {numInput("research_papers_published", "Research papers published")}
+          {cert("s24")}
         </FormSection>
 
         {/* Section 25 */}
         <FormSection number="25" icon="🔬" title="Research Projects">
           {numInput("research_projects", "Research projects")}
+          {cert("s25")}
         </FormSection>
 
         {/* Section 26 */}
         <FormSection number="26" icon="🌟" title="Leadership Roles">
           {numInput("leadership_roles", "Leadership roles")}
+          {cert("s26")}
         </FormSection>
 
-        {/* Section 27 */}
+        {/* Section 27 - NO upload */}
         <FormSection number="27" icon="📁" title="Files Maintained">
           {boolInput("files_maintained", "Files maintained?", "5 points")}
         </FormSection>
@@ -334,6 +418,7 @@ const StaffForm = () => {
               <Textarea value={data.future_goals} onChange={(e) => set("future_goals", e.target.value)} className="mt-1" />
             </div>
           </div>
+          {cert("s28")}
         </FormSection>
 
         {/* Remarks */}
@@ -359,11 +444,27 @@ const StaffForm = () => {
         </FormSection>
 
         {/* Score display */}
-        {score !== null && (
-          <div className="section-card text-center">
-            <p className="text-2xl font-bold text-primary">
-              Total Score: {score} / 200
-            </p>
+        {score !== null && sectionScores && (
+          <div className="section-card">
+            <h3 className="section-title">📊 Score Breakdown</h3>
+            <div className="space-y-1 mb-4">
+              {sectionScores.map((s, i) => (
+                <div key={i} className="flex justify-between text-sm border-b border-border py-1">
+                  <span>{s.section}</span>
+                  <span className="font-medium text-primary">{s.score}{s.maxScore > 0 ? `/${s.maxScore}` : ""}</span>
+                </div>
+              ))}
+            </div>
+            <div className="text-center border-t border-border pt-4">
+              <p className="text-2xl font-bold text-primary">
+                Total Score: {score} / 200
+              </p>
+              {perfLevel && (
+                <p className="text-lg mt-1">
+                  {perfLevel.emoji} Performance Level: <strong>{perfLevel.label}</strong>
+                </p>
+              )}
+            </div>
           </div>
         )}
 
