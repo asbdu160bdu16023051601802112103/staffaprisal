@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      appraisal_certificates: {
+        Row: {
+          appraisal_id: string | null
+          created_at: string
+          file_name: string
+          file_path: string
+          id: string
+          section_number: string
+        }
+        Insert: {
+          appraisal_id?: string | null
+          created_at?: string
+          file_name: string
+          file_path: string
+          id?: string
+          section_number: string
+        }
+        Update: {
+          appraisal_id?: string | null
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          section_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appraisal_certificates_appraisal_id_fkey"
+            columns: ["appraisal_id"]
+            isOneToOne: false
+            referencedRelation: "appraisals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appraisals: {
         Row: {
           academic_year: string
