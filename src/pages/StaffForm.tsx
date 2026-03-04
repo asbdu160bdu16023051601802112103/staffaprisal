@@ -1,16 +1,18 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import Header from "@/components/Header";
 import FormSection from "@/components/FormSection";
 import CertificateUpload from "@/components/CertificateUpload";
+import SectionNav from "@/components/SectionNav";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { AppraisalData, getDefaultData, calculateScore, calculateSectionScores, getPerformanceLevel } from "@/lib/scoreCalculator";
 
+const TOTAL_SECTIONS = 29; // 28 sections + Remarks
 const StaffForm = () => {
   const [data, setData] = useState<AppraisalData>(getDefaultData());
   const [loading, setLoading] = useState(false);
@@ -19,7 +21,14 @@ const StaffForm = () => {
   const [lastSubmittedData, setLastSubmittedData] = useState<AppraisalData | null>(null);
   const [lastSubmittedScore, setLastSubmittedScore] = useState<number | null>(null);
   const [certFiles, setCertFiles] = useState<Record<string, File[]>>({});
+  const [currentSection, setCurrentSection] = useState(0);
+  const sectionTopRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  const goToSection = (idx: number) => {
+    setCurrentSection(idx);
+    sectionTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const set = (field: keyof AppraisalData, value: string | number | boolean) => {
     setData((prev) => ({ ...prev, [field]: value }));
@@ -212,7 +221,12 @@ const StaffForm = () => {
           <strong>Total Score: 200 points.</strong>
         </div>
 
+        <div ref={sectionTopRef} />
+
+        <SectionNav current={currentSection} total={TOTAL_SECTIONS} onPrev={() => goToSection(currentSection - 1)} onNext={() => goToSection(currentSection + 1)} />
+
         {/* Section 1 */}
+        {currentSection === 0 && (
         <FormSection number="1" icon="👤" title="Personal Information">
           <div className="form-grid">
             {textInput("staff_name", "Staff Name", "Full Name", true)}
@@ -225,8 +239,10 @@ const StaffForm = () => {
           </div>
           {cert("s1", "Upload Proof (Optional)")}
         </FormSection>
+        )}
 
         {/* Section 2 */}
+        {currentSection === 1 && (
         <FormSection number="2" icon="📅" title="Leave / Permission / On Duty">
           <div className="form-grid">
             {numInput("casual_leave_days", "Casual Leave days taken")}
@@ -236,8 +252,10 @@ const StaffForm = () => {
           </div>
           {cert("s2", "Upload Proof (Optional)")}
         </FormSection>
+        )}
 
         {/* Section 3 */}
+        {currentSection === 2 && (
         <FormSection number="3" icon="🎓" title="Professional Development">
           {boolInput("qualification_upgradation", "Qualification Upgradation")}
           {cert("s3_qual", "Upload Qualification Certificate (Optional)")}
@@ -248,8 +266,10 @@ const StaffForm = () => {
           </div>
           {cert("s3", "Upload FDP / Seminar Certificate (Optional)")}
         </FormSection>
+        )}
 
         {/* Section 4 */}
+        {currentSection === 3 && (
         <FormSection number="4" icon="💻" title="Online Courses & e-Content">
           <div className="form-grid">
             {numInput("online_courses_completed", "Online courses completed")}
@@ -257,31 +277,41 @@ const StaffForm = () => {
           </div>
           {cert("s4")}
         </FormSection>
+        )}
 
         {/* Section 5 */}
+        {currentSection === 4 && (
         <FormSection number="5" icon="🏆" title="Awards & Recognitions">
           {numInput("number_of_awards", "Number of awards")}
           {cert("s5")}
         </FormSection>
+        )}
 
         {/* Section 6 */}
+        {currentSection === 5 && (
         <FormSection number="6" icon="🤝" title="Memberships in Academic Bodies">
           {numInput("active_memberships", "Active memberships")}
           {cert("s6")}
         </FormSection>
+        )}
 
         {/* Section 7 - NO upload */}
+        {currentSection === 6 && (
         <FormSection number="7" icon="⚖️" title="Administrative Actions">
           {boolInput("administrative_penalties", "Administrative penalties?", "-5 points")}
         </FormSection>
+        )}
 
         {/* Section 8 */}
+        {currentSection === 7 && (
         <FormSection number="8" icon="📚" title="Curriculum Development">
           {numInput("curriculum_contributions", "Contributions to curriculum")}
           {cert("s8")}
         </FormSection>
+        )}
 
         {/* Section 9 - ONE common upload */}
+        {currentSection === 8 && (
         <FormSection number="9" icon="👨‍🏫" title="Teaching Learning & Evaluation">
           <div className="form-grid">
             {numInput("workload_hours_per_week", "Workload (hours/week)")}
@@ -294,115 +324,153 @@ const StaffForm = () => {
           </div>
           {cert("s9", "Upload Teaching Certificates (Optional)")}
         </FormSection>
+        )}
 
         {/* Section 10 */}
+        {currentSection === 9 && (
         <FormSection number="10" icon="➕" title="Value Added Courses">
           {numInput("value_added_courses_offered", "Value-added courses offered")}
           {cert("s10")}
         </FormSection>
+        )}
 
         {/* Section 11 */}
+        {currentSection === 10 && (
         <FormSection number="11" icon="🎭" title="Co-curricular Activities">
           {numInput("cocurricular_activities_organized", "Activities organized")}
           {cert("s11")}
         </FormSection>
+        )}
 
         {/* Section 12 */}
+        {currentSection === 11 && (
         <FormSection number="12" icon="🏀" title="Extra-curricular Activities">
           {numInput("extracurricular_activities_advisor", "Activities as advisor")}
           {cert("s12")}
         </FormSection>
+        )}
 
         {/* Section 13 */}
+        {currentSection === 12 && (
         <FormSection number="13" icon="🤲" title="Social Responsibility">
           {numInput("social_programs_participated", "Programs participated")}
           {cert("s13")}
         </FormSection>
+        )}
 
         {/* Section 14 */}
+        {currentSection === 13 && (
         <FormSection number="14" icon="🔬" title="Student Projects">
           {numInput("projects_guided", "Projects guided")}
           {cert("s14")}
         </FormSection>
+        )}
 
         {/* Section 15 */}
+        {currentSection === 14 && (
         <FormSection number="15" icon="💼" title="Internship / Training">
           {numInput("internships_guided", "Internships guided")}
           {cert("s15")}
         </FormSection>
+        )}
 
         {/* Section 16 */}
+        {currentSection === 15 && (
         <FormSection number="16" icon="👥" title="Tutor-Ward System">
           {numInput("number_of_mentees", "Number of mentees")}
           {cert("s16")}
         </FormSection>
+        )}
 
         {/* Section 17 - NO upload */}
+        {currentSection === 16 && (
         <FormSection number="17" icon="👑" title="Class In-Charge">
           {boolInput("class_in_charge", "Were you class in-charge?")}
         </FormSection>
+        )}
 
         {/* Section 18 */}
+        {currentSection === 17 && (
         <FormSection number="18" icon="📊" title="Student Results">
           {numInput("average_pass_percentage", "Average pass % (0-100)")}
           {cert("s18")}
         </FormSection>
+        )}
 
         {/* Section 19 */}
+        {currentSection === 18 && (
         <FormSection number="19" icon="📈" title="Student Attendance">
           {numInput("attendance_percentage", "Attendance % in classes")}
           {cert("s19")}
         </FormSection>
+        )}
 
         {/* Section 20 */}
+        {currentSection === 19 && (
         <FormSection number="20" icon="📝" title="Exam Attendance">
           {numInput("exam_attendance_percentage", "Exam attendance %")}
           {cert("s20")}
         </FormSection>
+        )}
 
         {/* Section 21 */}
+        {currentSection === 20 && (
         <FormSection number="21" icon="👨‍👩‍👧‍👦" title="Parent Meetings">
           {numInput("parent_meetings_conducted", "Parent meetings conducted")}
           {cert("s21")}
         </FormSection>
+        )}
 
         {/* Section 22 */}
+        {currentSection === 21 && (
         <FormSection number="22" icon="🐢" title="Slow Learners">
           {numInput("slow_learners_assisted", "Slow learners assisted")}
           {cert("s22")}
         </FormSection>
+        )}
 
         {/* Section 23 */}
+        {currentSection === 22 && (
         <FormSection number="23" icon="🚀" title="Advanced Learners">
           {numInput("advanced_learners_tasks", "Advanced learners tasks")}
           {cert("s23")}
         </FormSection>
+        )}
 
         {/* Section 24 */}
+        {currentSection === 23 && (
         <FormSection number="24" icon="🔬" title="Research Papers Published">
           {numInput("research_papers_published", "Research papers published")}
           {cert("s24")}
         </FormSection>
+        )}
 
         {/* Section 25 */}
+        {currentSection === 24 && (
         <FormSection number="25" icon="🔬" title="Research Projects">
           {numInput("research_projects", "Research projects")}
           {cert("s25")}
         </FormSection>
+        )}
 
         {/* Section 26 */}
+        {currentSection === 25 && (
         <FormSection number="26" icon="🌟" title="Leadership Roles">
           {numInput("leadership_roles", "Leadership roles")}
           {cert("s26")}
         </FormSection>
+        )}
 
-        {/* Section 27 - NO upload */}
+        {/* Section 27 */}
+        {currentSection === 26 && (
         <FormSection number="27" icon="📁" title="Files Maintained">
           {boolInput("files_maintained", "Files maintained?")}
           {cert("s27", "Upload Certificate (Optional)")}
         </FormSection>
+        )}
 
         {/* Section 28 */}
+        {currentSection === 27 && (
         <FormSection number="28" icon="📝" title="Self-Assessment & Additional Info">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -424,8 +492,10 @@ const StaffForm = () => {
           </div>
           {cert("s28")}
         </FormSection>
+        )}
 
         {/* Remarks */}
+        {currentSection === 28 && (
         <FormSection number="" icon="📝" title="Remarks & Recommendations">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -446,6 +516,9 @@ const StaffForm = () => {
             </div>
           </div>
         </FormSection>
+        )}
+
+        <SectionNav current={currentSection} total={TOTAL_SECTIONS} onPrev={() => goToSection(currentSection - 1)} onNext={() => goToSection(currentSection + 1)} />
 
         {/* Score display */}
         {score !== null && sectionScores && (
