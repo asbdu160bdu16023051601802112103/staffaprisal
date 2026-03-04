@@ -19,7 +19,7 @@ const Header = () => {
         </div>
         <div className="hidden md:block bg-white/10 border border-white/20 rounded-md px-4 py-2">
           <p className="font-semibold text-sm">Bon Grade Me</p>
-          <p className="text-xs text-primary-foreground/80">Staff Performance</p>
+          <p className="text-xs text-primary-foreground/80">Staff Performance Based Appraisal System</p>
         </div>
       </div>
     </header>

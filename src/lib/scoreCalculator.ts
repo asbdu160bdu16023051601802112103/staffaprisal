@@ -128,11 +128,10 @@ export function calculateSectionScores(data: AppraisalData, certificateSections:
 
   // Section 3: Professional Development
   let s3 = 0;
-  if (data.qualification_upgradation) s3 += 5;
   s3 += Math.min(data.fdp_days_attended, 5) * 2;
   s3 += Math.min(data.seminars_workshops_attended, 5) * 2;
   s3 += Math.min(data.seminars_workshops_organized, 3) * 5;
-  sections.push({ section: "3. Professional Development", score: certBonus("s3", s3, 40), maxScore: 40 });
+  sections.push({ section: "3. Professional Development", score: certBonus("s3", s3, 35), maxScore: 35 });
 
   // Section 4: Online Courses
   let s4 = 0;
@@ -162,8 +161,7 @@ export function calculateSectionScores(data: AppraisalData, certificateSections:
   s9 += Math.min(data.courses_taught, 5);
   s9 += Math.min(data.remedial_classes, 3) * 2;
   s9 += Math.min(data.exam_duties, 3) * 2;
-  if (data.course_file_submitted) s9 += 5;
-  sections.push({ section: "9. Teaching & Evaluation", score: certBonus("s9", s9, 22), maxScore: 22 });
+  sections.push({ section: "9. Teaching & Evaluation", score: certBonus("s9", s9, 17), maxScore: 17 });
 
   // Section 10: Value Added
   let s10 = Math.min(data.value_added_courses_offered, 3) * 3;
@@ -193,9 +191,9 @@ export function calculateSectionScores(data: AppraisalData, certificateSections:
   let s16 = Math.min(data.number_of_mentees, 5);
   sections.push({ section: "16. Tutor-Ward System", score: certBonus("s16", s16, 5), maxScore: 5 });
 
-  // Section 17: Class in-charge
-  let s17 = data.class_in_charge ? 5 : 0;
-  sections.push({ section: "17. Class In-Charge", score: s17, maxScore: 5 });
+  // Section 17: Class in-charge - no fixed yes=5 points
+  let s17 = 0;
+  sections.push({ section: "17. Class In-Charge", score: s17, maxScore: 0 });
 
   // Section 18: Results
   let s18 = 0;
@@ -240,9 +238,9 @@ export function calculateSectionScores(data: AppraisalData, certificateSections:
   let s26 = Math.min(data.leadership_roles, 3) * 3;
   sections.push({ section: "26. Leadership Roles", score: certBonus("s26", s26, 9), maxScore: 9 });
 
-  // Section 27: Files
-  let s27 = data.files_maintained ? 5 : 0;
-  sections.push({ section: "27. Files Maintained", score: s27, maxScore: 5 });
+  // Section 27: Files - no fixed yes=5 points
+  let s27 = 0;
+  sections.push({ section: "27. Files Maintained", score: certBonus("s27", s27, 0), maxScore: 0 });
 
   return sections;
 }
