@@ -42,10 +42,13 @@ const StaffForm = () => {
       <Label className="text-sm font-medium text-foreground">{label}</Label>
       <Input
         type="number"
-        min={0}
+        min={1}
         placeholder={placeholder}
         value={data[field] as number}
-        onChange={(e) => set(field, Number(e.target.value))}
+        onChange={(e) => {
+          const val = Number(e.target.value);
+          set(field, val <= 0 ? 1 : val);
+        }}
         className="mt-1"
       />
     </div>
@@ -202,7 +205,7 @@ const StaffForm = () => {
         </div>
 
         <h2 className="text-2xl font-bold text-foreground mb-2">
-          📊 Bon Grade Me - Staff Performance - Complete 28 Sections
+          📊 Bon Grade Me - Staff Performance Based Appraisal System - Complete 28 Sections
         </h2>
         <div className="info-banner mb-6">
           Fill all 28 sections. Upload proof files where required for scoring.{" "}
@@ -236,7 +239,7 @@ const StaffForm = () => {
 
         {/* Section 3 */}
         <FormSection number="3" icon="🎓" title="Professional Development">
-          {boolInput("qualification_upgradation", "Qualification Upgradation", "5 points")}
+          {boolInput("qualification_upgradation", "Qualification Upgradation")}
           {cert("s3_qual", "Upload Qualification Certificate (Optional)")}
           <div className="form-grid mt-3">
             {numInput("fdp_days_attended", "FDP days attended")}
@@ -287,7 +290,7 @@ const StaffForm = () => {
             {numInput("exam_duties", "Exam duties")}
           </div>
           <div className="mt-3">
-            {boolInput("course_file_submitted", "Course file submitted?", "5 points")}
+            {boolInput("course_file_submitted", "Course file submitted?")}
           </div>
           {cert("s9", "Upload Teaching Certificates (Optional)")}
         </FormSection>
@@ -336,7 +339,7 @@ const StaffForm = () => {
 
         {/* Section 17 - NO upload */}
         <FormSection number="17" icon="👑" title="Class In-Charge">
-          {boolInput("class_in_charge", "Were you class in-charge?", "5 points")}
+          {boolInput("class_in_charge", "Were you class in-charge?")}
         </FormSection>
 
         {/* Section 18 */}
@@ -395,7 +398,8 @@ const StaffForm = () => {
 
         {/* Section 27 - NO upload */}
         <FormSection number="27" icon="📁" title="Files Maintained">
-          {boolInput("files_maintained", "Files maintained?", "5 points")}
+          {boolInput("files_maintained", "Files maintained?")}
+          {cert("s27", "Upload Certificate (Optional)")}
         </FormSection>
 
         {/* Section 28 */}
