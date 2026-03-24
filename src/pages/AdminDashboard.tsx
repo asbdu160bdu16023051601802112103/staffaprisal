@@ -230,6 +230,13 @@ const AdminDashboard = () => {
           </div>
         )}
       </div>
+      {viewingCerts && (
+        <CertificateViewer
+          appraisalId={viewingCerts.id}
+          staffName={viewingCerts.name}
+          onClose={() => setViewingCerts(null)}
+        />
+      )}
     </div>
   );
 };
