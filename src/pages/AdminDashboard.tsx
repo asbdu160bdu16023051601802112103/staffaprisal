@@ -24,6 +24,7 @@ const AdminDashboard = () => {
   const [appraisals, setAppraisals] = useState<Appraisal[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [viewingCerts, setViewingCerts] = useState<{ id: string; name: string } | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -208,7 +209,13 @@ const AdminDashboard = () => {
                     <td className="px-3 py-3 text-sm text-muted-foreground">
                       {new Date(a.created_at).toLocaleDateString()}
                     </td>
-                    <td className="px-3 py-3 text-sm">
+                    <td className="px-3 py-3 text-sm flex gap-2">
+                      <button
+                        onClick={() => setViewingCerts({ id: a.id, name: a.staff_name })}
+                        className="text-primary hover:underline text-sm"
+                      >
+                        📄 Certificates
+                      </button>
                       <button
                         onClick={() => handleDelete(a.id)}
                         className="text-destructive hover:underline text-sm"
