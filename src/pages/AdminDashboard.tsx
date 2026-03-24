@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import Header from "@/components/Header";
+import CertificateViewer from "@/components/CertificateViewer";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 
