@@ -150,7 +150,7 @@ const StaffForm = () => {
     }
 
     setLoading(false);
-    toast.success(`Appraisal submitted successfully! Score: ${totalScore}/200`);
+    toast.success("Certificate uploaded successfully. Appraisal submitted! Score: " + totalScore + "/200");
     setLastSubmittedData({ ...data });
     setLastSubmittedScore(totalScore);
     setData(getDefaultData());
